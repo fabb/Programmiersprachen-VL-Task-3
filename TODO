@@ -1,0 +1,18 @@
+TODO
+====
+
+General
+-------
+
+* Choose English or German for Comments, Commit Messages etc.
+* Choose Programming Language
+    * Python
+    * Ruby
+    * Perl
+* Discuss Input Syntax, Architecture
+* Write Preconditions, Postconditions and Invariants as Function Comments
+
+Features
+--------
+
+* Facilitate Testability
