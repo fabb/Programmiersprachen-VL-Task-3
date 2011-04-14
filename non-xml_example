@@ -1,0 +1,7 @@
+
+{
+	x command1 -arg1 -arg2 ;
+	b bla[xxx].bla x command2 [[xxx]] ;
+	l { command3 } ;
+	e command 4 -arg1 c command5 -arg1 -arg2 ;
+}

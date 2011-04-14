@@ -1,0 +1,18 @@
+workflow = WS* , action
+
+action = (prim | seq | batch | loop | error) , [\n] , WS*
+
+prim = "x" , WS+ , command , WS+ , args
+seq = "{" , WS* , (action , ";" , WS*)+ , WS* , "}"
+batch = "b" , WS+ , pattern, WS+ , action
+loop = "l" , WS+ , action
+error = "e" , WS+ , action , "c" , action
+
+command = legalFSchar+
+args = arg , WS+ , args | ;
+arg = legalFSchar , arg | legalFSchar | "[" , wildcard , "]" , arg | "[" , wildcard , "]"
+pattern = legalFSchar pattern | legalFSchar | wildcard pattern | wildcard
+wildcard = "[" , [a-zA-Z0-9]+ , "]"
+
+legalFSchar = [a-zA-Z0-9_()/-] (* and more - but NOT "[" , "]" or " " *)
+WS = [ \t\n]

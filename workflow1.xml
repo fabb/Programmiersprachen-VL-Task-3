@@ -1,0 +1,34 @@
+<workflow>
+	<sequence>
+		<action>
+			<command>command1</command>
+			<argument>-arg1<argument>
+			<argument>-arg2<argument>
+		</action>
+		<batch>
+			<pattern>bla[xxx].bla</pattern>
+			<action>
+				<command>command2</command>
+				<argument>[[xxx]]<argument>
+			</action>
+		</batch>
+		<loop>
+			<sequence>
+				<action>
+					<command>command3</command>
+				</action>
+			</sequence>
+		</loop>
+		<error>
+			<action>
+				<command>command4</command>
+				<argument>-arg1<argument>
+			</action>
+			<action>
+				<command>command5</command>
+				<argument>-arg1<argument>
+				<argument>-arg2<argument>
+			</action>
+		</error>
+	</sequence>
+</workflow>

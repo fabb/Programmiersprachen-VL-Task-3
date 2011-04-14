@@ -1,0 +1,17 @@
+grammar {
+	start = element workflow { action }
+
+	action = element action { prim | seq | batch | loop | error }
+
+	prim = element prim { command , argument* }
+	seq = element seq { action+ }
+	batch = element batch { pattern, action }
+	loop = element loop { action }
+	error = element error { action , action }
+
+	command = element command { text } #TODO only allow for legalFSchar = [a-zA-Z0-9_()/-] (* and more - but NOT "[" , "]" or " " *)
+	argument = element argument { text } #TODO wildcards [[w]]
+
+	pattern = elemet pattern { text } #TODO wildcards [w]
+	wildcard = element wildcard { text }
+}
