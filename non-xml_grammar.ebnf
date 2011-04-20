@@ -6,7 +6,7 @@ prim = "x" , WS+ , command , WS+ , args
 seq = "{" , WS* , (action , ";" , WS*)+ , WS* , "}"
 batch = "b" , WS+ , pattern, WS+ , action
 loop = "l" , WS+ , action
-error = "e" , WS+ , action , "c" , action
+error = "e" , WS+ , action , "c" , WS+, action
 
 command = legalFSchar+
 args = arg , WS+ , args | ;
