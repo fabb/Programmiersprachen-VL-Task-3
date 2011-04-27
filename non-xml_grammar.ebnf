@@ -2,11 +2,11 @@ workflow = WS* , action
 
 action = (prim | seq | batch | loop | error) , [\n] , WS*
 
-prim = "x" , WS+ , command , WS+ , args
+prim = "!x" , WS+ , command , WS+ , args
 seq = "{" , WS* , (action , ";" , WS*)+ , WS* , "}"
-batch = "b" , WS+ , pattern, WS+ , action
-loop = "l" , WS+ , action
-error = "e" , WS+ , action , "c" , WS+, action
+batch = "!b" , WS+ , pattern, WS+ , action
+loop = "!l" , WS+ , action
+error = "!e" , WS+ , action , "!c" , WS+, action
 
 command = legalFSchar+
 args = arg , WS+ , args | ;
