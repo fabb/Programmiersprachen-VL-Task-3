@@ -8,7 +8,7 @@ use warnings;
 
 $_ = "{ } !x echo lol rofl
 !b !l !e !c /home/stuff/[img]_[date].jpg ;
-!x echo [foo].jpg asdf as!df !x echo foo
+!x echo [[foo]].jpg asdf as!df !x echo foo
 ";
 #$_ = "!x !fail echo haha}";
 
@@ -47,6 +47,18 @@ while ($validlex) {
 		}
 		if (@patterns > 0) {
 			print "\twith pattern: @patterns\n";
+		}
+	} elsif (/\G(([\w\/\.]|\[\[\w+\]\])+)\s+/gc) {
+		my $id = $1;
+		my $idmod = $id;
+		print "ref: $id\n";
+
+		my @patterns = ();
+		while ($id =~ /\[\[(\w+)\]\]/g) {
+			push @patterns, $1;
+		}
+		if (@patterns > 0) {
+			print "\twith ref-pattern: @patterns\n";
 		}
 	} elsif (!/\G[^.\n]*/gc) {
 		print "all done.\n";
