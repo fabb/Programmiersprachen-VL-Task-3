@@ -66,7 +66,8 @@ sub scan {
 			if (@patterns > 0) {
 				print "\twith ref-pattern: @patterns\n";
 			}
-		} elsif (!/\G[^.\n]*/gc) {
+			push @token, {tokentype => "pattern", content => $id, patterns => \@patterns};
+		} elsif (/\G\s*$/gc) {
 			print "all done.\n";
 			$validlex = 0;
 		} else {
