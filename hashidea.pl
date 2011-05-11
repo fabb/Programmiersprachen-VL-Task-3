@@ -93,11 +93,25 @@ my $prog = {
 };
 
 
-sub makecomargs{}
-sub makeactions{}
-sub breakpattern{}
-sub makepattern{}
-sub breakcatch{}
+sub makecomargs{
+	return "xxx"
+}
+
+sub makeactions{
+	return []
+}
+
+sub breakpattern{
+	return [[],[]]
+}
+
+sub makepattern{
+	return {}
+}
+
+sub breakcatch{
+	return [[],[]]
+}
 
 
 
@@ -149,7 +163,7 @@ sub parse{
 				}
 	}
 	
-	return %prog;
+	return \%prog;
 }
 
 
@@ -159,8 +173,13 @@ my %primtoken = ( # this could be a current token in the token array
 );
 
 
-my @tokentest = (%primtoken);
+my @tokentest = (\%primtoken);
 
-my %progtest = parse(@tokentest);
+my $progtest = parse(@tokentest);
 
-print %progtest;
+print "progtest ref: $progtest\n";
+
+for my $key (keys %{$progtest}) {
+	print "$key => ${$progtest}{$key}\n";
+}
+
