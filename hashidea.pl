@@ -1,4 +1,9 @@
 
+use strict;
+use warnings;
+use feature ":5.10"; # for given/when
+
+
 my $prim = {
 	actiontype  =>  "prim",
 	comargs   =>  "rm [mywild]"
@@ -14,7 +19,7 @@ my $batch = {
 	pattern   =>  {
 			        string  =>  "deleteme[[mywild]]",
 			        wildcards  =>  ("mywild"),
-	              };
+	              },
 	action  =>  $seq
 };
 
@@ -41,7 +46,7 @@ my $prog = {
 									pattern   =>  {
 													string  =>  "deleteme[[mywild]]",
 													wildcards  =>  ("mywild"),
-												  };
+												  },
 									action  =>  {
 													actiontype  =>  "seq",
 													actions   =>  (
@@ -56,7 +61,8 @@ my $prog = {
 																	 {
 																		 actiontype  =>  "prim",
 																		 comargs   =>  "rm [mywild]"
-																	 })
+																	 }
+																  )
 												}
 								}
                  },
@@ -65,7 +71,7 @@ my $prog = {
 	                pattern   =>  {
 			                        string  =>  "deleteme[[mywild]]",
 			                        wildcards  =>  ("mywild"),
-	                              };
+	                              },
                 	action  =>  {
 	                                actiontype  =>  "seq",
 	                                actions   =>  (
@@ -80,47 +86,60 @@ my $prog = {
 													 {
 										                 actiontype  =>  "prim",
 										                 comargs   =>  "rm [mywild]"
-									                 })
+									                 }
+												  )
                                 }
                 }
 };
 
 
+sub makecomargs{}
+sub makeactions{}
+sub breakpattern{}
+sub makepattern{}
+sub breakcatch{}
+
 
 
 sub parse{
-    @token = shift;
+    my @token = shift;
 	
 	my %prog;
 	
-	given(unshift @token -> {'actiontype'}) {
+	 given((shift @token) -> {'actiontype'}) {
 		when ("prim") {
-		                   %prog {'actiontype'} = "prim";
-		                   %prog {'comargs'} = makecomargs(@token); # puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
+		                   $prog{'actiontype'} = "prim";
+		                   $prog{'comargs'} = makecomargs(@token); # puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
 		              }
 		when ("seq") {
-		                   %prog {'actiontype'} = "seq";
-		                   %prog {'actions'} = makeactions(@token); # separates *all* token from @token into single actions by ";" (taking care of "units" enclosed in {}), and calls parse() for each such token group and thus produces an array of actions
+		                   $prog{'actiontype'} = "seq";
+						   # actually @
+		                   $prog{'actions'} = makeactions(@token); # separates *all* token from @token into single actions by ";" (taking care of "units" enclosed in {}), and calls parse() for each such token group and thus produces an array of actions
 		             }
 		when ("batch") {
-		                   %prog {'actiontype'} = "batch";
+		                   $prog{'actiontype'} = "batch";
 						   my @pattern_plus_rest = breakpattern(@token); # returns an array with two elements, first is filled with tokens that build a pattern, second is the unused rest of @token
-						   my @pattern = @pattern_plus_rest[0];
-						   my @token = @pattern_plus_rest[1];
-		                   %prog {'pattern'} = makepattern(@pattern); # puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
-		                   %prog {'action'} = parse(@token);
+						   my @pattern = $pattern_plus_rest[0];
+						   @token = $pattern_plus_rest[1];
+						   # actually %
+		                   $prog{'pattern'} = makepattern(@pattern); # puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
+						   # actually %
+		                   $prog{'action'} = parse(@token);
 		               }
 		when ("loop") {
-		                   %prog {'actiontype'} = "loop";
-		                   %prog {'action'} = parse(@token);
+		                   $prog{'actiontype'} = "loop";
+						   # actually %
+		                   $prog{'action'} = parse(@token);
 		              }
 		when ("error") {
-		                   %prog {'actiontype'} = "error";
+		                   $prog{'actiontype'} = "error";
 						   my @action_plus_rest = breakcatch(@token); # returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
-						   my @action = @action_plus_rest[0];
-						   my @token = @action_plus_rest[1];
-		                   %prog {'action'} = parse(@action);
-		                   %prog {'catch'} = parse(@token);
+						   my @action = $action_plus_rest[0];
+						   @token = $action_plus_rest[1];
+						   # actually %
+		                   $prog{'action'} = parse(@action);
+						   # actually %
+		                   $prog{'catch'} = parse(@token);
 		               }
 		when (undef) { print "error";
 				        exit 1;
@@ -129,6 +148,19 @@ sub parse{
 				  exit 1;
 				}
 	}
+	
+	return %prog;
 }
 
 
+my %primtoken = ( # this could be a current token in the token array
+	tokentype  => 1, # must be given and bla
+	actiontype  => "prim" # any additional keys giving details specific to the token type
+);
+
+
+my @tokentest = (%primtoken);
+
+my %progtest = parse(@tokentest);
+
+print %progtest;
