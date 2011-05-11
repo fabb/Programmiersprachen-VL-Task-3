@@ -5,6 +5,7 @@
 
 use strict;
 use warnings;
+use feature ":5.10"; # for given/when
 
 
 my $input_fail = "{ } !x echo lol rofl
@@ -92,6 +93,101 @@ sub scan {
 }
 
 
+# puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
+sub makecomargs{
+	#TODO
+	#only eats tokentype => "ref", nothing should be left in the end (error if there is)
+	#checking for wildcard pattern usage is still an issue
+	return "xxx"
+}
+
+# separates *all* token from @token into single actions by ";" (taking care of "units" enclosed in {}), and calls parse() for each such token group and thus produces an array of actions
+sub makeactions{
+	#TODO
+	#needs to call parse() for each found action
+	return []
+}
+
+# returns an array with two elements, first is filled with tokens that build a pattern, second is the unused rest of @token
+sub breakpattern{
+	#TODO
+	# actually this function can be omitted, as in our program a pattern does not contain any spaces and thus is a single token of type "pattern"
+	return [[],[]]
+}
+
+# puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
+sub makepattern{
+	#TODO
+	# this function can also be omitted, as scan() already stores the pattern array
+	return {}
+}
+
+# returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
+sub breakcatch{
+	#TODO
+	# watch out for the !c but take care of units in {}
+	return [[],[]]
+}
+
+
+# parses the given token list and produces a hash with the executable program structure
+sub parse{
+    my @token = shift; # also copies array which is what we want; array only holds references, thus it's not that expensive
+	
+	my %prog;
+	
+	given((shift @token) -> {'tokentype'}) {
+		when ("prim") {
+			$prog{'actiontype'} = "prim";
+			$prog{'comargs'} = makecomargs(@token); # puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
+			#TODO check wildcard pattern variable names for correct use
+		}
+		when ("seq_start") {
+			#TODO pop last token and check if it is of type "seq_end", if not error out
+			$prog{'actiontype'} = "seq";
+			$prog{'actions'} = makeactions(@token); # separates *all* token from @token into single actions by ";" (taking care of "units" enclosed in {}), and calls parse() for each such token group and thus produces an array of actions
+		}
+		when ("batch") {
+			$prog{'actiontype'} = "batch";
+			my @pattern_plus_rest = breakpattern(@token); # returns an array with two elements, first is filled with tokens that build a pattern, second is the unused rest of @token
+			my @pattern = $pattern_plus_rest[0];
+			@token = $pattern_plus_rest[1];
+			$prog{'pattern'} = makepattern(@pattern); # puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
+			$prog{'action'} = parse(@token);
+			#TODO store wildcard pattern variables and check their correct use
+		}
+		when ("loop") {
+			$prog{'actiontype'} = "loop";
+			$prog{'action'} = parse(@token);
+		}
+		when ("exception") {
+			$prog{'actiontype'} = "error";
+			my @action_plus_rest = breakcatch(@token); # returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
+			my @action = $action_plus_rest[0];
+			@token = $action_plus_rest[1];
+			$prog{'action'} = parse(@action);
+			$prog{'catch'} = parse(@token);
+		}
+		when (undef) {
+			print "error: unexpected token"; #TODO more information on content of @token
+			exit 1;
+		}
+		default {
+			print "error"; #TODO more information on content of @token
+			exit 1;
+		}
+	}
+	
+	return \%prog;
+}
+
+
+# executes the given program hash
+sub exec{
+	#TODO
+}
+
+
 #TODO read real input
 
 
@@ -115,3 +211,16 @@ for my $tok (@{$token}) {
 	}
 	print "\n";
 }
+
+
+
+# parse token array
+my $prog = parse(@{$token});
+
+
+# test print output (yet nonrecursive)
+print "prog ref: $prog\n";
+for my $key (keys %{$prog}) {
+	print "$key => ${$prog}{$key}\n";
+}
+
