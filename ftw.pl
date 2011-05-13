@@ -14,10 +14,13 @@ my $input_fail = "{ } !x echo lol rofl
 ";
 #$_ = "!x !fail echo haha}";
 
-my $input = "{ !x command_xy lol[x] rofl[[x]] ; }";
+my $input = "!b muster[x] !x echo bla ";
+my $input_fail2 = "!b muster[x] !x echo [[x]]";
+my $input2 = "{ !x command_xy lol[x] rofl[[x]] ; }";
 
 
 # lexes the input and produces an array with lexemes stored in a hash
+#FIXME input needs space at the end
 sub scan {
 	
 	my $_ = shift; # take input
@@ -55,6 +58,7 @@ sub scan {
 			print "delim\n";
 			push @token, {tokentype => "delim"};
 		} elsif (/\G(([\w\/\.]|\[\[\w+\]\])+)\s+/gc) {
+			#TODO " ' and `
 			my $id = $1;
 			print "ref: $id\n";
 
@@ -67,6 +71,7 @@ sub scan {
 			}
 			push @token, {tokentype => "ref", content => $id, patterns => \@patterns};
 		} elsif (/\G(([\w\/\.]|\[\w+\])+)\s+/gc) { # only a pattern in a batch, thus after ref matching above
+			#TODO " ' and `
 			my $id = $1;
 			my $idmod = $id; # actually the replacing is not interesting until execution as the name of the patterns is still needed until then
 			$idmod =~ s/\[\w+\]/\*/g;
@@ -96,29 +101,28 @@ sub scan {
 # puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
 sub makecomargs{
 	#TODO
+	#TODO check wildcard pattern variable names for correct use
 	#only eats tokentype => "ref", nothing should be left in the end (error if there is)
 	#checking for wildcard pattern usage is still an issue
 	return "xxx"
 }
 
-# separates *all* token from @token into single actions by ";" (taking care of "units" enclosed in {}), and calls parse() for each such token group and thus produces an array of actions
+# separates *all* token from @token into tokenarrays by ";" (taking care of "units" enclosed in {})
+# ';' are no more contained afterwards
 sub makeactions{
 	#TODO
 	#needs to call parse() for each found action
-	return []
-}
-
-# returns an array with two elements, first is filled with tokens that build a pattern, second is the unused rest of @token
-sub breakpattern{
-	#TODO
-	# actually this function can be omitted, as in our program a pattern does not contain any spaces and thus is a single token of type "pattern"
-	return [[],[]]
+	return ()
 }
 
 # puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
 sub makepattern{
 	#TODO
 	# this function can also be omitted, as scan() already stores the pattern array
+	#pattern   =>  {
+	#		        string  =>  "deleteme[[mywild]]",
+	#		        wildcards  =>  ("mywild"),
+	#              },
 	return {}
 }
 
@@ -126,47 +130,65 @@ sub makepattern{
 sub breakcatch{
 	#TODO
 	# watch out for the !c but take care of units in {}
-	return [[],[]]
+	return ()
 }
 
 
 # parses the given token list and produces a hash with the executable program structure
 sub parse{
-    my @token = shift; # also copies array which is what we want; array only holds references, thus it's not that expensive
+    my $token = shift;
+    my $wvars = shift;
 	
 	my %prog;
 	
-	given((shift @token) -> {'tokentype'}) {
+	given((shift @$token) -> {'tokentype'}) {
 		when ("prim") {
 			$prog{'actiontype'} = "prim";
-			$prog{'comargs'} = makecomargs(@token); # puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
+			$prog{'comargs'} = makecomargs($token,$wvars); # puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
 			#TODO check wildcard pattern variable names for correct use
 		}
 		when ("seq_start") {
-			#TODO pop last token and check if it is of type "seq_end", if not error out
+			if((pop @$token) -> {'tokentype'} ne "seq_end"){ # also catches token which has not got any tokentype key
+				print "error: matching } missing";
+				exit 1;
+			}
 			$prog{'actiontype'} = "seq";
-			$prog{'actions'} = makeactions(@token); # separates *all* token from @token into single actions by ";" (taking care of "units" enclosed in {}), and calls parse() for each such token group and thus produces an array of actions
+			my @actiontokens = makeactions($token); # separates *all* token from @token into tokenarrays by ";" (taking care of "units" enclosed in {})
+			my @actions;
+			for my $actiontoken (@actiontokens){
+				push @actions, parse($actiontoken,$wvars);
+			}
+			$prog{'actions'} = @actions;
 		}
 		when ("batch") {
 			$prog{'actiontype'} = "batch";
-			my @pattern_plus_rest = breakpattern(@token); # returns an array with two elements, first is filled with tokens that build a pattern, second is the unused rest of @token
-			my @pattern = $pattern_plus_rest[0];
-			@token = $pattern_plus_rest[1];
-			$prog{'pattern'} = makepattern(@pattern); # puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
-			$prog{'action'} = parse(@token);
+			my $pattern = shift @$token;
+			if(($pattern -> {'tokentype'} ne "pattern") && ($pattern -> {'tokentype'} ne "ref")){ #TODO change scan()
+				print "error: not a pattern";
+				exit 1;
+			}
+			
+			print "batch\n";
+			#{tokentype => "pattern", content => $id, patterns => \@patterns}
+			for my $v ($pattern -> {'patterns'}){
+				#TODO add new wildcards and check if none of the existing are reused
+				print "$v\n";
+			}
+			
+			$prog{'pattern'} = makepattern($pattern); # puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
+			my @wvarsnew = @$wvars; #copy wvars
+			$prog{'action'} = parse($token,\@wvarsnew);
 			#TODO store wildcard pattern variables and check their correct use
 		}
 		when ("loop") {
 			$prog{'actiontype'} = "loop";
-			$prog{'action'} = parse(@token);
+			$prog{'action'} = parse($token,$wvars);
 		}
 		when ("exception") {
 			$prog{'actiontype'} = "error";
-			my @action_plus_rest = breakcatch(@token); # returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
-			my @action = $action_plus_rest[0];
-			@token = $action_plus_rest[1];
-			$prog{'action'} = parse(@action);
-			$prog{'catch'} = parse(@token);
+			my @action = breakcatch($token); # TODO (desc) returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
+			$prog{'action'} = parse(\@action,$wvars);
+			$prog{'catch'} = parse($token,$wvars);
 		}
 		when (undef) {
 			print "error: unexpected token"; #TODO more information on content of @token
@@ -214,8 +236,8 @@ for my $tok (@{$token}) {
 
 
 
-# parse token array
-my $prog = parse(@{$token});
+# parse token array - eats up $token
+my $prog = parse($token,[]);
 
 
 # test print output (yet nonrecursive)
