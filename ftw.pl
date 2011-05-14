@@ -58,6 +58,11 @@ sub scan {
 		} elsif (/\G;\s*/gc) {
 			print "delim\n";
 			push @token, {tokentype => "delim"};
+		} elsif (/\G(([\w\/\.])+)\s+/gc) {
+			#TODO " ' and `
+			my $id = $1;
+			print "id: $id\n";
+			push @token, {tokentype => "id", content => $id};
 		} elsif (/\G(([\w\/\.]|\[\[\w+\]\])+)\s+/gc) {
 			#TODO " ' and `
 			my $id = $1;
@@ -164,7 +169,7 @@ sub parse{
 		when ("batch") {
 			$prog{'actiontype'} = "batch";
 			my $pattern = shift @$token;
-			if(($pattern -> {'tokentype'} ne "pattern") && ($pattern -> {'tokentype'} ne "ref")){ #TODO change scan()
+			if(($pattern -> {'tokentype'} ne "pattern") && ($pattern -> {'tokentype'} ne "id")){
 				print "error: not a pattern";
 				exit 1;
 			}
