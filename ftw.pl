@@ -15,7 +15,8 @@ my $input_fail = "{ } !x echo lol rofl
 ";
 #$_ = "!x !fail echo haha}";
 
-my $input = "!b muster[x] !x echo bla [[x]] ";
+my $input = "{ ;; !b muster[x] !x echo bla [[x]] ; {{{ !x echo bli }}} ;; !x echo bla } ";
+my $input3 = "!b muster[x] !x echo bla [[x]] ";
 my $input_fail2 = "!b muster[x] !x echo [[x]]";
 my $input2 = "{ !x command_xy lol[x] rofl[[x]] ; }";
 
@@ -104,14 +105,6 @@ sub scan {
 }
 
 
-# separates *all* token from @token into tokenarrays by ";" (taking care of "units" enclosed in {})
-# ';' are no more contained afterwards
-sub makeactions{
-	#TODO
-	#needs to call parse() for each found action
-	return ()
-}
-
 # returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
 sub breakcatch{
 	#TODO
@@ -180,12 +173,62 @@ sub parse{
 				exit 1;
 			}
 			$prog{'actiontype'} = "seq";
-			my @actiontokens = makeactions($token); # separates *all* token from @token into tokenarrays by ";" (taking care of "units" enclosed in {})
+			
+			# separates all token from @token into tokenarrays by ";" (taking care of "units" enclosed in {}), ';' are no more contained afterwards
+			my @actiontokens;
+			while(@$token > 0){
+				my $seqdepth = 0;
+				my @atok;
+				
+				while(@$token > 0 && (($$token[0] -> {'tokentype'}) eq "delim")){ # eat unnecessary ; tokens
+					shift @$token;
+				}
+				
+				while(@$token > 0){ #TODO
+					
+					my $curtok = shift @$token;
+					
+					if(($curtok -> {'tokentype'}) eq "seq_start"){
+						$seqdepth = $seqdepth + 1;
+					}
+					elsif(($curtok -> {'tokentype'}) eq "seq_end"){
+						$seqdepth = $seqdepth - 1;
+						if(	$seqdepth < 0){
+							print "error: too many closing curly braces }"; #TODO more information
+							exit 1;
+						}
+					}
+					
+					if($seqdepth == 0 && ($curtok -> {'tokentype'}) eq "delim"){
+						last; # same as break
+					}
+					
+					else{ # token still belongs to current action
+						push @atok, $curtok;
+					}
+				}
+				
+				while(@$token > 0 && (($$token[0] -> {'tokentype'}) eq "delim")){ # eat unnecessary ; tokens
+					shift @$token;
+				}
+				
+				if(@$token == 0 && $seqdepth > 0){
+					print "error: too many opening curly braces }"; #TODO more information
+					exit 1;
+				}
+				
+				push @actiontokens, \@atok;
+			}
+			
+			# test print output
+			# print "\nactions:\n\n";
+			# print Dumper(\@actiontokens);
+			
 			my @actions;
 			for my $actiontoken (@actiontokens){
 				push @actions, parse($actiontoken,$wvars);
 			}
-			$prog{'actions'} = @actions;
+			$prog{'actions'} = \@actions;
 		}
 		when ("batch") {
 			$prog{'actiontype'} = "batch";
