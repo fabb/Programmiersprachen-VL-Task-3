@@ -15,7 +15,7 @@ my $input_fail = "{ } !x echo lol rofl
 ";
 #$_ = "!x !fail echo haha}";
 
-my $input = "!b muster[x] !x echo bla ";
+my $input = "!b muster[x] !x echo bla [[x]] ";
 my $input_fail2 = "!b muster[x] !x echo [[x]]";
 my $input2 = "{ !x command_xy lol[x] rofl[[x]] ; }";
 
@@ -69,7 +69,7 @@ sub scan {
 			print "ref: $id\n";
 
 			my @patterns = ();
-			while ($id =~ /\[\[(\w+)\]\]/g) {
+			while ($id =~ /\[(\[\w+\])\]/g) {
 				push @patterns, $1;
 			}
 			if (@patterns > 0) {
@@ -104,15 +104,6 @@ sub scan {
 }
 
 
-# puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
-sub makecomargs{
-	#TODO
-	#TODO check wildcard pattern variable names for correct use
-	#only eats tokentype => "ref", nothing should be left in the end (error if there is)
-	#checking for wildcard pattern usage is still an issue
-	return "xxx"
-}
-
 # separates *all* token from @token into tokenarrays by ";" (taking care of "units" enclosed in {})
 # ';' are no more contained afterwards
 sub makeactions{
@@ -136,11 +127,52 @@ sub parse{
 	
 	my %prog;
 	
-	given((shift @$token) -> {'tokentype'}) {
+	if(@$token == 0){
+		print "error: missing a token";
+		exit 1;
+	}
+	
+	my $curtok = (shift @$token) -> {'tokentype'};
+	
+	given($curtok) {
 		when ("prim") {
 			$prog{'actiontype'} = "prim";
-			$prog{'comargs'} = makecomargs($token,$wvars); # puts *all* token from @token as concatenated string into comargs, if a wrong token is found, error out
-			#TODO check wildcard pattern variable names for correct use
+			if(@$token == 0){
+				print "error: missing command name";
+				exit 1;
+			}
+			
+			my $commandtok = shift @$token;
+			
+			if($commandtok -> {'tokentype'} ne "id"){
+				print "error: command name of wrong type"; #TODO more information
+				exit 1;
+			}
+			
+			$prog{'command'} = $commandtok -> {'content'};
+			
+			my @args;
+			for my $arg (@$token){
+				if($arg -> {'tokentype'} eq "id"){
+					push @args, {argcontent => ($arg -> {'content'}), wildcards => []};
+				}
+				elsif($arg -> {'tokentype'} eq "ref"){
+					my @vars;
+					for my $v (@{$arg -> {'patterns'}}){
+						if((grep {$_ eq $v;} @$wvars) == 0){
+							print "error: in argument used wildcard variable $v was never defined in a batch pattern";
+							exit 1;
+						}
+						push @vars, $v
+					}
+					push @args, {argcontent => ($arg -> {'content'}), wildcards => \@vars};
+				}
+				else{
+					print "error: argument of wrong type"; #TODO more information
+					exit 1;
+				}
+			}
+			$prog{'args'} = \@args;
 		}
 		when ("seq_start") {
 			if((pop @$token) -> {'tokentype'} ne "seq_end"){ # also catches token which has not got any tokentype key
@@ -201,7 +233,7 @@ sub parse{
 			exit 1;
 		}
 		default {
-			print "error"; #TODO more information on content of @token
+			print "error: $curtok"; #TODO more information on content of @token
 			exit 1;
 		}
 	}
