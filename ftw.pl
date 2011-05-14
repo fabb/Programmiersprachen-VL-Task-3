@@ -121,17 +121,6 @@ sub makeactions{
 	return ()
 }
 
-# puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
-sub makepattern{
-	#TODO
-	# this function can also be omitted, as scan() already stores the pattern array
-	#pattern   =>  {
-	#		        string  =>  "deleteme[[mywild]]",
-	#		        wildcards  =>  ("mywild"),
-	#              },
-	return {}
-}
-
 # returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
 sub breakcatch{
 	#TODO
@@ -169,22 +158,33 @@ sub parse{
 		when ("batch") {
 			$prog{'actiontype'} = "batch";
 			my $pattern = shift @$token;
-			if(($pattern -> {'tokentype'} ne "pattern") && ($pattern -> {'tokentype'} ne "id")){
+			
+			if($pattern -> {'tokentype'} eq "pattern"){				
+				my @wvarsnew = @$wvars; #copy wvars
+				my @w;
+				for my $v (@{$pattern -> {'patterns'}}){
+					# check if wildcard variable name is already used
+					if ((grep {$_ eq $v;} @wvarsnew) > 0) {
+						print "error: wildcard variable $v was already used before in a batch pattern";
+						exit 1;
+					}
+					push @wvarsnew, $v;
+					push @w, $v;
+				}
+				
+				$prog{'pattern'}{'string'} = $pattern -> {'content'};
+				$prog{'pattern'}{'wildcards'} = \@w;
+				$prog{'action'} = parse($token,\@wvarsnew);
+			}
+			elsif($pattern -> {'tokentype'} eq "id"){ # no new wildcard variables
+				$prog{'pattern'}{'string'} = $pattern -> {'content'};
+				$prog{'pattern'}{'wildcards'} = [];
+				$prog{'action'} = parse($token,$wvars);
+			}
+			else{
 				print "error: not a pattern";
 				exit 1;
 			}
-			
-			print "batch\n";
-			#{tokentype => "pattern", content => $id, patterns => \@patterns}
-			for my $v ($pattern -> {'patterns'}){
-				#TODO add new wildcards and check if none of the existing are reused
-				print "$v\n";
-			}
-			
-			$prog{'pattern'} = makepattern($pattern); # puts *all* token from @pattern as concatenated string into pattern->string and the found wildcards into pattern->wildcards, if a wrong token is found, error out
-			my @wvarsnew = @$wvars; #copy wvars
-			$prog{'action'} = parse($token,\@wvarsnew);
-			#TODO store wildcard pattern variables and check their correct use
 		}
 		when ("loop") {
 			$prog{'actiontype'} = "loop";

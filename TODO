@@ -4,20 +4,9 @@ TODO
 General
 -------
 
-* Choose English or German for Comments, Commit Messages etc.
-* Choose Programming Language
-    * Python
-    * Ruby
-    * Perl
-* Discuss Input Syntax, Architecture
-** Use XML as Input Syntax?
-*** It is possible: http://www.haskell.org/haskellwiki/HXT/Conversion_of_Haskell_data_from/to_XML#The_serialized_program_as_XML
-*** Eclipse ANT Files are also in XML
-*** Characters as '<' and '>' are not allowed and must be written as '&lt;' and '&gt;'
-** Use easier to write non-xml syntax?
-*** should a single action always be terminated with a ";" to make its end easier to distinguish?
-*** allow for comments?
+* allow for comments?
 * Write Preconditions, Postconditions and Invariants as Function Comments
+* input scanning needs additional space in the end of a non-sequence program due to s+
 
 Features
 --------
