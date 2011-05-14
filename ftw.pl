@@ -6,6 +6,7 @@
 use strict;
 use warnings;
 use feature ":5.10"; # for given/when
+use Data::Dumper;
 
 
 my $input_fail = "{ } !x echo lol rofl
@@ -219,30 +220,14 @@ my $token = scan($input);
 
 # test print output
 print "\ntoken:\n\n";
-for my $tok (@{$token}) {
-	for my $key (keys %{$tok}) {
-		if(ref(${$tok}{$key}) eq 'ARRAY'){
-			print "\t$key => ARRAY: ";
-			for my $arrit (@{${$tok}{$key}}){
-				print "$arrit, ";
-			}
-			print "\n";
-		}else{
-			print "\t$key => ${$tok}{$key}\n";
-		}
-	}
-	print "\n";
-}
-
+print Dumper($token);
 
 
 # parse token array - eats up $token
 my $prog = parse($token,[]);
 
 
-# test print output (yet nonrecursive)
-print "prog ref: $prog\n";
-for my $key (keys %{$prog}) {
-	print "$key => ${$prog}{$key}\n";
-}
+# test print output
+print "\nprog ref:\n\n";
+print Dumper($prog);
 
