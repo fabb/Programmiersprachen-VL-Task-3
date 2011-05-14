@@ -15,7 +15,8 @@ my $input_fail = "{ } !x echo lol rofl
 ";
 #$_ = "!x !fail echo haha}";
 
-my $input = "{ ;; !b muster[x] !x echo bla [[x]] ; {{{ !x echo bli }}} ;; !x echo bla } ";
+my $input = "!e !e !x echo bla !c !x echo blu !c !x echo bli ";
+my $input4 = "{ ;; !b muster[x] !x echo bla [[x]] ; {{{ !x echo bli }}} ;; !x echo bla } ";
 my $input3 = "!b muster[x] !x echo bla [[x]] ";
 my $input_fail2 = "!b muster[x] !x echo [[x]]";
 my $input2 = "{ !x command_xy lol[x] rofl[[x]] ; }";
@@ -105,14 +106,6 @@ sub scan {
 }
 
 
-# returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
-sub breakcatch{
-	#TODO
-	# watch out for the !c but take care of units in {}
-	return ()
-}
-
-
 # parses the given token list and produces a hash with the executable program structure
 sub parse{
     my $token = shift;
@@ -184,7 +177,7 @@ sub parse{
 					shift @$token;
 				}
 				
-				while(@$token > 0){ #TODO
+				while(@$token > 0){
 					
 					my $curtok = shift @$token;
 					
@@ -267,8 +260,47 @@ sub parse{
 		}
 		when ("exception") {
 			$prog{'actiontype'} = "error";
-			my @action = breakcatch($token); # TODO (desc) returns an array with two elements, first is filled with tokens that build an action, second is the unused rest of @token
+			
+			if(@$token == 0){
+				print "error: unexpected end of input"; #TODO more information
+				exit 1;
+			}			
+			
+			# collect all token that belong to action part of error action
+			my @action;
+			my $errdepth = 1; # !e token was already eaten, but not the matching !c token
+						
+			while(@$token > 0){
+				
+				my $curtok = shift @$token;
+				
+				if(($curtok -> {'tokentype'}) eq "exception"){
+					$errdepth = $errdepth + 1;
+				}
+				elsif(($curtok -> {'tokentype'}) eq "catch"){
+					$errdepth = $errdepth - 1;
+					if(	$errdepth < 0){
+						print "error: too many !c commands"; #TODO more information
+						exit 1;
+					}
+				}
+				
+				if($errdepth == 0 && ($curtok -> {'tokentype'}) eq "catch"){
+					last; # same as break
+				}
+				
+				else{ # token still belongs to action part
+					push @action, $curtok;
+				}
+			}
+			
+			if(@$token == 0 && $errdepth > 0){
+				print "error: too many opening !e commands"; #TODO more information
+				exit 1;
+			}
+			
 			$prog{'action'} = parse(\@action,$wvars);
+			
 			$prog{'catch'} = parse($token,$wvars);
 		}
 		when (undef) {
