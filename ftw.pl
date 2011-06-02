@@ -25,7 +25,6 @@ my $input2 = "{ !x command_xy lol[x] rofl[[x]] ; }";
 # lexes the input and produces an array with lexemes stored in a hash
 #FIXME input needs space at the end
 sub scan {
-	
 	my $_ = shift; # take input
 	my @token;
 
@@ -108,29 +107,27 @@ sub scan {
 
 # parses the given token list and produces a hash with the executable program structure
 sub parse{
-    my $token = shift;
-    my $wvars = shift;
-	
+    my ($token,$wvars) = @_;
 	my %prog;
 	
-	if(@$token == 0){
+	if (@$token == 0){
 		print "error: missing a token";
 		exit 1;
 	}
 	
 	my $curtok = (shift @$token) -> {'tokentype'};
 	
-	given($curtok) {
+	given ($curtok) {
 		when ("prim") {
 			$prog{'actiontype'} = "prim";
-			if(@$token == 0){
+			if (@$token == 0){
 				print "error: missing command name";
 				exit 1;
 			}
 			
 			my $commandtok = shift @$token;
 			
-			if($commandtok -> {'tokentype'} ne "id"){
+			if ($commandtok -> {'tokentype'} ne "id") {
 				print "error: command name of wrong type"; #TODO more information
 				exit 1;
 			}
@@ -138,14 +135,14 @@ sub parse{
 			$prog{'command'} = $commandtok -> {'content'};
 			
 			my @args;
-			for my $arg (@$token){
-				if($arg -> {'tokentype'} eq "id"){
+			for my $arg (@$token) {
+				if ($arg -> {'tokentype'} eq "id") {
 					push @args, {argcontent => ($arg -> {'content'}), wildcards => []};
 				}
-				elsif($arg -> {'tokentype'} eq "ref"){
+				elsif ($arg -> {'tokentype'} eq "ref") {
 					my @vars;
-					for my $v (@{$arg -> {'patterns'}}){
-						if((grep {$_ eq $v;} @$wvars) == 0){
+					for my $v (@{$arg -> {'patterns'}}) {
+						if((grep {$_ eq $v;} @$wvars) == 0) {
 							print "error: in argument used wildcard variable $v was never defined in a batch pattern";
 							exit 1;
 						}
@@ -153,7 +150,7 @@ sub parse{
 					}
 					push @args, {argcontent => ($arg -> {'content'}), wildcards => \@vars};
 				}
-				else{
+				else {
 					print "error: argument of wrong type"; #TODO more information
 					exit 1;
 				}
@@ -161,7 +158,7 @@ sub parse{
 			$prog{'args'} = \@args;
 		}
 		when ("seq_start") {
-			if((pop @$token) -> {'tokentype'} ne "seq_end"){ # also catches token which has not got any tokentype key
+			if ((pop @$token) -> {'tokentype'} ne "seq_end") { # also catches token which has not got any tokentype key
 				print "error: matching } missing";
 				exit 1;
 			}
@@ -169,43 +166,41 @@ sub parse{
 			
 			# separates all token from @token into tokenarrays by ";" (taking care of "units" enclosed in {}), ';' are no more contained afterwards
 			my @actiontokens;
-			while(@$token > 0){
+			while (@$token > 0) {
 				my $seqdepth = 0;
 				my @atok;
 				
-				while(@$token > 0 && (($$token[0] -> {'tokentype'}) eq "delim")){ # eat unnecessary ; tokens
+				while (@$token > 0 && (($$token[0] -> {'tokentype'}) eq "delim")) { # eat unnecessary ; tokens
 					shift @$token;
 				}
 				
-				while(@$token > 0){
-					
+				while (@$token > 0) {
 					my $curtok = shift @$token;
 					
-					if(($curtok -> {'tokentype'}) eq "seq_start"){
+					if (($curtok -> {'tokentype'}) eq "seq_start") {
 						$seqdepth = $seqdepth + 1;
 					}
-					elsif(($curtok -> {'tokentype'}) eq "seq_end"){
+					elsif (($curtok -> {'tokentype'}) eq "seq_end") {
 						$seqdepth = $seqdepth - 1;
-						if(	$seqdepth < 0){
+						if ($seqdepth < 0) {
 							print "error: too many closing curly braces }"; #TODO more information
 							exit 1;
 						}
 					}
 					
-					if($seqdepth == 0 && ($curtok -> {'tokentype'}) eq "delim"){
+					if ($seqdepth == 0 && ($curtok -> {'tokentype'}) eq "delim") {
 						last; # same as break
 					}
-					
-					else{ # token still belongs to current action
+					else { # token still belongs to current action
 						push @atok, $curtok;
 					}
 				}
 				
-				while(@$token > 0 && (($$token[0] -> {'tokentype'}) eq "delim")){ # eat unnecessary ; tokens
+				while (@$token > 0 && (($$token[0] -> {'tokentype'}) eq "delim")) { # eat unnecessary ; tokens
 					shift @$token;
 				}
 				
-				if(@$token == 0 && $seqdepth > 0){
+				if (@$token == 0 && $seqdepth > 0) {
 					print "error: too many opening curly braces }"; #TODO more information
 					exit 1;
 				}
@@ -218,7 +213,7 @@ sub parse{
 			# print Dumper(\@actiontokens);
 			
 			my @actions;
-			for my $actiontoken (@actiontokens){
+			for my $actiontoken (@actiontokens) {
 				push @actions, parse($actiontoken,$wvars);
 			}
 			$prog{'actions'} = \@actions;
@@ -227,10 +222,10 @@ sub parse{
 			$prog{'actiontype'} = "batch";
 			my $pattern = shift @$token;
 			
-			if($pattern -> {'tokentype'} eq "pattern"){				
+			if ($pattern -> {'tokentype'} eq "pattern") {
 				my @wvarsnew = @$wvars; #copy wvars
 				my @w;
-				for my $v (@{$pattern -> {'patterns'}}){
+				for my $v (@{$pattern -> {'patterns'}}) {
 					# check if wildcard variable name is already used
 					if ((grep {$_ eq $v;} @wvarsnew) > 0) {
 						print "error: wildcard variable $v was already used before in a batch pattern";
@@ -244,12 +239,12 @@ sub parse{
 				$prog{'pattern'}{'wildcards'} = \@w;
 				$prog{'action'} = parse($token,\@wvarsnew);
 			}
-			elsif($pattern -> {'tokentype'} eq "id"){ # no new wildcard variables
+			elsif ($pattern -> {'tokentype'} eq "id") { # no new wildcard variables
 				$prog{'pattern'}{'string'} = $pattern -> {'content'};
 				$prog{'pattern'}{'wildcards'} = [];
 				$prog{'action'} = parse($token,$wvars);
 			}
-			else{
+			else {
 				print "error: not a pattern";
 				exit 1;
 			}
@@ -261,7 +256,7 @@ sub parse{
 		when ("exception") {
 			$prog{'actiontype'} = "error";
 			
-			if(@$token == 0){
+			if (@$token == 0){
 				print "error: unexpected end of input"; #TODO more information
 				exit 1;
 			}			
@@ -270,31 +265,29 @@ sub parse{
 			my @action;
 			my $errdepth = 1; # !e token was already eaten, but not the matching !c token
 						
-			while(@$token > 0){
-				
+			while (@$token > 0) {
 				my $curtok = shift @$token;
 				
-				if(($curtok -> {'tokentype'}) eq "exception"){
+				if (($curtok -> {'tokentype'}) eq "exception") {
 					$errdepth = $errdepth + 1;
 				}
-				elsif(($curtok -> {'tokentype'}) eq "catch"){
+				elsif (($curtok -> {'tokentype'}) eq "catch") {
 					$errdepth = $errdepth - 1;
-					if(	$errdepth < 0){
+					if ($errdepth < 0) {
 						print "error: too many !c commands"; #TODO more information
 						exit 1;
 					}
 				}
 				
-				if($errdepth == 0 && ($curtok -> {'tokentype'}) eq "catch"){
+				if ($errdepth == 0 && ($curtok -> {'tokentype'}) eq "catch") {
 					last; # same as break
 				}
-				
-				else{ # token still belongs to action part
+				else { # token still belongs to action part
 					push @action, $curtok;
 				}
 			}
 			
-			if(@$token == 0 && $errdepth > 0){
+			if (@$token == 0 && $errdepth > 0) {
 				print "error: too many opening !e commands"; #TODO more information
 				exit 1;
 			}
