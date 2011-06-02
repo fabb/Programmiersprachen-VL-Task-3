@@ -8,6 +8,7 @@ use warnings;
 use feature ":5.10"; # for given/when
 use Data::Dumper;
 
+my $DEBUG = 1;
 
 my $input_fail = "{ } !x echo lol rofl
 !b !l !e !c /home/stuff/[img]_[date].jpg ;
@@ -28,7 +29,7 @@ sub scan {
 	my $_ = shift; # take input
 	my @token;
 
-	print "scannning \"$_\":\n\n";
+	print "scannning \"$_\":\n\n" if $DEBUG;
 	my $validlex = 1;
 	my $lastpos = 0;
 
@@ -36,45 +37,45 @@ sub scan {
 	# subsection "\G assertion"
 	while ($validlex) {
 		if (/\G!x\s+/gc) {
-			print "prim\n";
+			print "prim\n" if $DEBUG;
 			push @token, {tokentype => "prim"};
 		} elsif (/\G!b\s+/gc) {
-			print "batch\n";
+			print "batch\n" if $DEBUG;
 			push @token, {tokentype => "batch"};
 		} elsif (/\G!l\s+/gc) {
-			print "loop\n";
+			print "loop\n" if $DEBUG;
 			push @token, {tokentype => "loop"};
 		} elsif (/\G!e\s+/gc) {
-			print "exception\n";
+			print "exception\n" if $DEBUG;
 			push @token, {tokentype => "exception"};
 		} elsif (/\G!c\s+/gc) {
-			print "catch\n";
+			print "catch\n" if $DEBUG;
 			push @token, {tokentype => "catch"};
 		} elsif (/\G{\s*/gc) {
-			print "seq_start\n";
+			print "seq_start\n" if $DEBUG;
 			push @token, {tokentype => "seq_start"};
 		} elsif (/\G}\s*/gc) {
-			print "seq_end\n";
+			print "seq_end\n" if $DEBUG;
 			push @token, {tokentype => "seq_end"};
 		} elsif (/\G;\s*/gc) {
-			print "delim\n";
+			print "delim\n" if $DEBUG;
 			push @token, {tokentype => "delim"};
 		} elsif (/\G(([\w\/\.])+)\s+/gc) {
 			#TODO " ' and `
 			my $id = $1;
-			print "id: $id\n";
+			print "id: $id\n" if $DEBUG;
 			push @token, {tokentype => "id", content => $id};
 		} elsif (/\G(([\w\/\.]|\[\[\w+\]\])+)\s+/gc) {
 			#TODO " ' and `
 			my $id = $1;
-			print "ref: $id\n";
+			print "ref: $id\n" if $DEBUG;
 
 			my @patterns = ();
 			while ($id =~ /\[(\[\w+\])\]/g) {
 				push @patterns, $1;
 			}
 			if (@patterns > 0) {
-				print "\twith ref-pattern: @patterns\n";
+				print "\twith ref-pattern: @patterns\n" if $DEBUG;
 			}
 			push @token, {tokentype => "ref", content => $id, patterns => \@patterns};
 		} elsif (/\G(([\w\/\.]|\[\w+\])+)\s+/gc) { # only a pattern in a batch, thus after ref matching above
@@ -82,18 +83,18 @@ sub scan {
 			my $id = $1;
 			my $idmod = $id; # actually the replacing is not interesting until execution as the name of the patterns is still needed until then
 			$idmod =~ s/\[\w+\]/\*/g;
-			print "pattern: $idmod\n";
+			print "pattern: $idmod\n" if $DEBUG;
 
 			my @patterns = ();
 			while ($id =~ /(\[\w+\])/g) {
 				push @patterns, $1;
 			}
 			if (@patterns > 0) {
-				print "\twith pattern: @patterns\n";
+				print "\twith pattern: @patterns\n" if $DEBUG;
 			}
 			push @token, {tokentype => "pattern", content => $id, patterns => \@patterns};
 		} elsif (/\G\s*$/gc) {
-			print "all done.\n";
+			print "all done.\n" if $DEBUG;
 			$validlex = 0;
 		} else {
 			print "syntax error: \"", substr($_, $lastpos), "\"\n";
@@ -312,7 +313,8 @@ sub parse{
 
 # executes the given program hash
 sub exec{
-	#TODO
+	#my ($token,$wvars) = @_;
+	print @_;
 }
 
 
@@ -324,8 +326,8 @@ my $token = scan($input);
 
 
 # test print output
-print "\ntoken:\n\n";
-print Dumper($token);
+print "\ntoken:\n\n" if $DEBUG;
+print Dumper($token) if $DEBUG;
 
 
 # parse token array - eats up $token
@@ -333,6 +335,7 @@ my $prog = parse($token,[]);
 
 
 # test print output
-print "\nprog ref:\n\n";
-print Dumper($prog);
+print "\nprog ref:\n\n" if $DEBUG;
+print Dumper($prog) if $DEBUG;
 
+print "w00t\n" if $DEBUG;
