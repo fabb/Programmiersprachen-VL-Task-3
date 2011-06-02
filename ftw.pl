@@ -112,7 +112,7 @@ sub parse{
 	my %prog;
 	
 	if (@$token == 0){
-		print "error: missing a token";
+		print "error: missing a token\n";
 		exit 1;
 	}
 	
@@ -122,14 +122,14 @@ sub parse{
 		when ("prim") {
 			$prog{'actiontype'} = "prim";
 			if (@$token == 0){
-				print "error: missing command name";
+				print "error: missing command name\n";
 				exit 1;
 			}
 			
 			my $commandtok = shift @$token;
 			
 			if ($commandtok -> {'tokentype'} ne "id") {
-				print "error: command name of wrong type"; #TODO more information
+				print "error: command name of wrong type\n"; #TODO more information
 				exit 1;
 			}
 			
@@ -144,7 +144,7 @@ sub parse{
 					my @vars;
 					for my $v (@{$arg -> {'patterns'}}) {
 						if((grep {$_ eq $v;} @$wvars) == 0) {
-							print "error: in argument used wildcard variable $v was never defined in a batch pattern";
+							print "error: in argument used wildcard variable $v was never defined in a batch pattern\n";
 							exit 1;
 						}
 						push @vars, $v
@@ -152,7 +152,7 @@ sub parse{
 					push @args, {argcontent => ($arg -> {'content'}), wildcards => \@vars};
 				}
 				else {
-					print "error: argument of wrong type"; #TODO more information
+					print "error: argument of wrong type\n"; #TODO more information
 					exit 1;
 				}
 			}
@@ -160,7 +160,7 @@ sub parse{
 		}
 		when ("seq_start") {
 			if ((pop @$token) -> {'tokentype'} ne "seq_end") { # also catches token which has not got any tokentype key
-				print "error: matching } missing";
+				print "error: matching } missing\n";
 				exit 1;
 			}
 			$prog{'actiontype'} = "seq";
@@ -184,7 +184,7 @@ sub parse{
 					elsif (($curtok -> {'tokentype'}) eq "seq_end") {
 						$seqdepth = $seqdepth - 1;
 						if ($seqdepth < 0) {
-							print "error: too many closing curly braces }"; #TODO more information
+							print "error: too many closing curly braces }\n"; #TODO more information
 							exit 1;
 						}
 					}
@@ -202,7 +202,7 @@ sub parse{
 				}
 				
 				if (@$token == 0 && $seqdepth > 0) {
-					print "error: too many opening curly braces }"; #TODO more information
+					print "error: too many opening curly braces }\n"; #TODO more information
 					exit 1;
 				}
 				
@@ -211,7 +211,7 @@ sub parse{
 			
 			# test print output
 			# print "\nactions:\n\n";
-			# print Dumper(\@actiontokens);
+			# print Dumper(\@actiontokens), "\n";
 			
 			my @actions;
 			for my $actiontoken (@actiontokens) {
@@ -229,7 +229,7 @@ sub parse{
 				for my $v (@{$pattern -> {'patterns'}}) {
 					# check if wildcard variable name is already used
 					if ((grep {$_ eq $v;} @wvarsnew) > 0) {
-						print "error: wildcard variable $v was already used before in a batch pattern";
+						print "error: wildcard variable $v was already used before in a batch pattern\n";
 						exit 1;
 					}
 					push @wvarsnew, $v;
@@ -246,7 +246,7 @@ sub parse{
 				$prog{'action'} = parse($token,$wvars);
 			}
 			else {
-				print "error: not a pattern";
+				print "error: not a pattern\n";
 				exit 1;
 			}
 		}
@@ -258,7 +258,7 @@ sub parse{
 			$prog{'actiontype'} = "error";
 			
 			if (@$token == 0){
-				print "error: unexpected end of input"; #TODO more information
+				print "error: unexpected end of input\n"; #TODO more information
 				exit 1;
 			}			
 			
@@ -275,7 +275,7 @@ sub parse{
 				elsif (($curtok -> {'tokentype'}) eq "catch") {
 					$errdepth = $errdepth - 1;
 					if ($errdepth < 0) {
-						print "error: too many !c commands"; #TODO more information
+						print "error: too many !c commands\n"; #TODO more information
 						exit 1;
 					}
 				}
@@ -289,7 +289,7 @@ sub parse{
 			}
 			
 			if (@$token == 0 && $errdepth > 0) {
-				print "error: too many opening !e commands"; #TODO more information
+				print "error: too many opening !e commands\n"; #TODO more information
 				exit 1;
 			}
 			
@@ -298,11 +298,11 @@ sub parse{
 			$prog{'catch'} = parse($token,$wvars);
 		}
 		when (undef) {
-			print "error: unexpected token"; #TODO more information on content of @token
+			print "error: unexpected token\n"; #TODO more information on content of @token
 			exit 1;
 		}
 		default {
-			print "error: $curtok"; #TODO more information on content of @token
+			print "error: $curtok\n"; #TODO more information on content of @token
 			exit 1;
 		}
 	}
