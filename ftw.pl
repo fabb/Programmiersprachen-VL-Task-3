@@ -42,7 +42,9 @@ sub scan {
 	# http://perldoc.perl.org/perlop.html#Regexp-Quote-Like-Operators
 	# subsection "\G assertion"
 	while ($validlex) {
-		if (/\G!x\s+/gc) {
+		if (/\G\#[ \t\S]*\n\s*/gc) {
+			print "comment\n" if $DEBUG;
+		} elsif (/\G!x\s+/gc) {
 			print "prim\n" if $DEBUG;
 			push @token, {tokentype => "prim"};
 		} elsif (/\G!b\s+/gc) {
@@ -66,7 +68,7 @@ sub scan {
 		} elsif (/\G;\s*/gc) {
 			print "delim\n" if $DEBUG;
 			push @token, {tokentype => "delim"};
-		} elsif (/\G(([\w\/\.])+)\s+/gc) {
+		} elsif (/\G(([\[\\\;\-\w\/\.])+)\s+/gc) {
 			#TODO " ' and `
 			my $id = $1;
 			print "id: $id\n" if $DEBUG;
@@ -352,7 +354,9 @@ sub execute {
 							my @tmpwc = ();
 							foreach my $tcwc (@crosswc) {
 								foreach my $file (@{$wcards->{$wc}}) {
-									push @tmpwc, ($tcwc . $file);
+									$_ = $arg->{'argcontent'};
+									s/\[\[\w+\]\]/$file/g;
+									push @tmpwc, ($tcwc . $_);
 								}
 							}
 							@crosswc = @tmpwc;
@@ -372,7 +376,7 @@ sub execute {
 			print "ccall: ", Dumper(@ccall) if $DEBUG;
 			# execute each generated call, but abort if one isn't successful
 			foreach my $cmdcall (@ccall) {
-				system($command . $cmdcall);
+				system(split(/ /, $command . $cmdcall));
 				if ($? != 0) {
 					return -1;
 				}
@@ -398,7 +402,7 @@ sub execute {
 			foreach my $wc (@twildcards) {
 				my $wco = $wc;
 				$wc =~ s/\[/\(\?</g;
-				$wc =~ s/\]/>\\\w\+\)/g;
+				$wc =~ s/\]/>\[\\\w\\\.\]\+\)/g;
 				$wco =~ s/\[/\\\[/g;
 				$wco =~ s/\]/\\\]/g;
 				$filepath =~ s/$wco/$wc/g;
@@ -468,12 +472,20 @@ sub execute {
 	return 0;
 }
 
+# MAIN
 
-#TODO read real input
-
+# read input (file or stdin)
+$_ = shift;
+my @lines;
+if ($_) {
+	open(my $in, "<", $_);
+	@lines = <$in>;
+} else {
+	@lines = <STDIN>;
+}
 
 # lex input
-my $token = scan($input9);
+my $token = scan(join("", @lines));
 
 
 # test print output
@@ -491,4 +503,6 @@ print Dumper($prog) if $DEBUG;
 
 my %wildcards = (dummy => []);
 delete $wildcards{"dummy"};
-execute($prog, \%wildcards);
+exit -1 if execute($prog, \%wildcards) == -1;
+
+exit 0;

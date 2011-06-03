@@ -4,7 +4,6 @@ TODO
 General
 -------
 
-* allow for comments?
 * Write Preconditions, Postconditions and Invariants as Function Comments
 * input scanning needs additional space in the end of a non-sequence program due to s+
 * bla[xxx][yyy] not allowed. fix that.
