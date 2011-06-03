@@ -5,10 +5,10 @@
 
 use strict;
 use warnings;
-use feature ":5.10"; # for given/when
+use feature ":5.10"; # for given/when and %+
 use Data::Dumper;
 
-my $DEBUG = 1;
+my $DEBUG = 0;
 
 my $input_fail = "{ } !x echo lol rofl
 !b !l !e !c /home/stuff/[img]_[date].jpg ;
@@ -21,6 +21,12 @@ my $input4 = "{ ;; !b muster[x] !x echo bla [[x]] ; {{{ !x echo bli }}} ;; !x ec
 my $input3 = "!b muster[x] !x echo bla [[x]] ";
 my $input_fail2 = "!b muster[x] !x echo [[x]]";
 my $input2 = "{ !x command_xy lol[x] rofl[[x]] ; }";
+# testcases for execute
+my $input5 = "!e !e !x false !c !x false !c !x echo bli ";
+my $input6 = "!b tst/pat[xxx]-[zzz] !b tst/foo[yyy] !e !e !x false !c !x echo asdf muh [[yyy]][[xxx]] b1 b2 b3 [[zzz]] b4 !c !x echo bli ";
+my $input7 = "!b tst/[xxx]-[yyy] !x echo wtf bla[[xxx]] ";
+my $input8 = "{!x echo abc ; !x echo 123 }";
+my $input9 = "!l !b tst/rofl[x] !x echo ups [[x]] ";
 
 
 # lexes the input and produces an array with lexemes stored in a hash
@@ -78,7 +84,7 @@ sub scan {
 				print "\twith ref-pattern: @patterns\n" if $DEBUG;
 			}
 			push @token, {tokentype => "ref", content => $id, patterns => \@patterns};
-		} elsif (/\G(([\w\/\.]|\[\w+\])+)\s+/gc) { # only a pattern in a batch, thus after ref matching above
+		} elsif (/\G(([\w\-_\/\.]|\[\w+\])+)\s+/gc) { # only a pattern in a batch, thus after ref matching above
 			#TODO " ' and `
 			my $id = $1;
 			my $idmod = $id; # actually the replacing is not interesting until execution as the name of the patterns is still needed until then
@@ -152,7 +158,7 @@ sub parse{
 					push @args, {argcontent => ($arg -> {'content'}), wildcards => \@vars};
 				}
 				else {
-					print "error: argument of wrong type\n"; #TODO more information
+					print "error: argument of wrong type: ", $arg->{'tokentype'}, "\n"; #TODO more information
 					exit 1;
 				}
 			}
@@ -213,11 +219,11 @@ sub parse{
 			# print "\nactions:\n\n";
 			# print Dumper(\@actiontokens), "\n";
 			
-			my @actions;
+			my @action;
 			for my $actiontoken (@actiontokens) {
-				push @actions, parse($actiontoken,$wvars);
+				push @action, parse($actiontoken,$wvars);
 			}
-			$prog{'actions'} = \@actions;
+			$prog{'action'} = \@action;
 		}
 		when ("batch") {
 			$prog{'actiontype'} = "batch";
@@ -297,12 +303,8 @@ sub parse{
 			
 			$prog{'catch'} = parse($token,$wvars);
 		}
-		when (undef) {
-			print "error: unexpected token\n"; #TODO more information on content of @token
-			exit 1;
-		}
 		default {
-			print "error: $curtok\n"; #TODO more information on content of @token
+			print "error: unexpected token \"$curtok\"\n"; #TODO more information on content of @token
 			exit 1;
 		}
 	}
@@ -310,11 +312,160 @@ sub parse{
 	return \%prog;
 }
 
-
 # executes the given program hash
-sub exec{
-	#my ($token,$wvars) = @_;
-	print @_;
+# ret: 1 "success", -1 "cmd failed", x > 0 "amount of executed prim actions"
+sub execute {
+	my ($ast, $wcards) = @_;
+
+	print "====== EXEC ======\n" if $DEBUG;
+	print "wcards: ", Dumper($wcards) if $DEBUG;
+	my $atype = $ast->{'actiontype'};
+	my $action = $ast->{'action'};
+	print "atype: ", $atype, "\n" if $DEBUG;
+
+	given ($atype) {
+		when ("prim") {
+			print "== prim  ==\n" if $DEBUG;
+			my $command = $ast->{'command'};
+			print "command: ", $command, "\n" if $DEBUG;
+			print "args-dump: ", Dumper($ast->{'args'}) if $DEBUG;
+
+			# tricky part: suppose you have 'echo abc t[[xx]] o[[yy]][[zz]]'
+			# and you have xx = {a,b,c}, yy = {1,2}, zz = {i,j} you get
+			# |xx| * |yy| * |zz| = 3 * 2 * 2 = 12 calls, i.e.
+			# > echo abc ta o1i
+			# > echo abc ta o1j
+			# > echo abc ta o2i
+			# > echo abc ta o2j
+			# > echo abc tb o1i
+			# ... and so forth
+			my @ccall = ("");
+			my $args = $ast->{'args'};
+			foreach my $arg (@{$args}) {
+				my @tcc = ();
+				if (@{$arg->{'wildcards'}}) { # array not empty
+
+					foreach my $ccelem (@ccall) {
+						# do a crossproduct of all matches of the wildcards
+						my @crosswc = ("");
+						foreach my $wc (@{$arg->{'wildcards'}}) {
+							my @tmpwc = ();
+							foreach my $tcwc (@crosswc) {
+								foreach my $file (@{$wcards->{$wc}}) {
+									push @tmpwc, ($tcwc . $file);
+								}
+							}
+							@crosswc = @tmpwc;
+						}
+						foreach my $ttcwc (@crosswc) {
+							push @tcc, ($ccelem . " " . $ttcwc);
+						}
+					}
+				} else {
+					foreach my $ccelem (@ccall) {
+						push @tcc, ($ccelem . " " . $arg->{'argcontent'});
+					}
+				}
+				@ccall = @tcc;
+			}
+
+			print "ccall: ", Dumper(@ccall) if $DEBUG;
+			# execute each generated call, but abort if one isn't successful
+			foreach my $cmdcall (@ccall) {
+				system($command . $cmdcall);
+				if ($? != 0) {
+					return -1;
+				}
+			}
+			return 1;
+		}
+		when ("batch") {
+			print "== batch ==\n" if $DEBUG;
+			my $pattern = $ast->{'pattern'};
+
+			my $filepath = $pattern->{'string'};
+			$filepath =~ s/\[\w+\]/\*/g;
+
+			my @files = split('\n',`ls $filepath 2> /dev/null`);
+			if ($? != 0) { # pattern doesn't exist (anymore)
+				return 0;
+			}
+
+			$filepath = $pattern->{'string'};
+			my @twildcards = @{$pattern->{'wildcards'}};
+
+			# replace wildcards with regex magic (named capturing)
+			foreach my $wc (@twildcards) {
+				my $wco = $wc;
+				$wc =~ s/\[/\(\?</g;
+				$wc =~ s/\]/>\\\w\+\)/g;
+				$wco =~ s/\[/\\\[/g;
+				$wco =~ s/\]/\\\]/g;
+				$filepath =~ s/$wco/$wc/g;
+			}
+			print "filepath: ", $filepath, "\n" if $DEBUG;
+
+			# extract each match for wildcard and store it for later use
+			foreach my $file (@files) {
+				if ($file =~ m/$filepath/) {
+					my %phash = %-;
+					@twildcards = @{$pattern->{'wildcards'}};
+					foreach my $t (@twildcards) {
+						my $tt = $t;
+						# remove '[' and ']' for hash access of the named
+						# capture hash
+						$t =~ s/(\[|\])//g; 
+						my @x = $phash{$t};
+						if ($x[0][0]) { # does it exists?
+							if (!$wcards->{$tt}) { # empty?
+								$wcards->{$tt} = [];
+							}
+							push @{$wcards->{$tt}}, $x[0][0];
+						}
+					}
+				}
+				print "file: ", $file, "\n" if $DEBUG;
+			}
+			return execute($ast->{'action'}, $wcards);
+		}
+		when ("seq") {
+			print "== seq   ==\n" if $DEBUG;
+			#my $actions = $ast->{'action'};
+			my $allret = 0;
+			foreach my $cmdcall (@{$action}) {
+				my $ret = execute($cmdcall, $wcards);
+				return -1 if $ret == -1;
+				$allret += $ret;
+			}
+			return $allret;
+		}
+		when ("loop") {
+			while (1) {
+				my %wcardsold = %{$wcards};
+				my $ret = execute($action, \%wcardsold);
+				print "loopret: ", $ret, "\n" if $DEBUG;
+				return 1 if $ret == 0;
+				return -1 if $ret == -1;
+			}
+		}
+		when ("error") {
+			print "== error ==\n" if $DEBUG;
+			my $catch = $ast->{'catch'};
+			my $ret = execute($action, $wcards);
+			return $ret if $ret != -1;
+			return execute($catch, $wcards);
+		}
+		when (undef) {
+			print "error: unexpected token\n"; #TODO: does this ever happen?
+			exit 1;
+		}
+		default {
+			print "error: $atype (maybe not implemented yet)\n"; #TODO: provide more information
+			# exit 1;
+		}
+	}
+	print "TODO: should never happen?\n";
+	return 0;
 }
 
 
@@ -322,7 +473,7 @@ sub exec{
 
 
 # lex input
-my $token = scan($input);
+my $token = scan($input9);
 
 
 # test print output
@@ -338,4 +489,6 @@ my $prog = parse($token,[]);
 print "\nprog ref:\n\n" if $DEBUG;
 print Dumper($prog) if $DEBUG;
 
-print "w00t\n" if $DEBUG;
+my %wildcards = (dummy => []);
+delete $wildcards{"dummy"};
+execute($prog, \%wildcards);

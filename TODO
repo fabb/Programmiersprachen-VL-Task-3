@@ -7,9 +7,9 @@ General
 * allow for comments?
 * Write Preconditions, Postconditions and Invariants as Function Comments
 * input scanning needs additional space in the end of a non-sequence program due to s+
+* bla[xxx][yyy] not allowed. fix that.
 
 Features
 --------
 
 * Facilitate Testability
-* Interactive Mode. Shell like? :-)
