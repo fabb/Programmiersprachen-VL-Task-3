@@ -402,7 +402,7 @@ sub execute {
 			foreach my $wc (@twildcards) {
 				my $wco = $wc;
 				$wc =~ s/\[/\(\?</g;
-				$wc =~ s/\]/>\[\\\w\\\.\]\+\)/g;
+				$wc =~ s/\]/>\[\\w\\\.\]\+\)/g;
 				$wco =~ s/\[/\\\[/g;
 				$wco =~ s/\]/\\\]/g;
 				$filepath =~ s/$wco/$wc/g;

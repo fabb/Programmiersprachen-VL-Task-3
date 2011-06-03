@@ -1,0 +1,14 @@
+#!./ftw.pl
+# Test Suite for
+# (F)ind (T)he (W)orkflow
+
+!e
+	!b tst/test_[x].ftw
+	{
+		# this would work if it would be some kind of foreach style syntax :/
+		!x echo -e \e[01;34mTesting tst/test_[[x]].ftw now ... \e[00m ;
+		!x ./ftw.pl ./tst/test_[[x]].ftw ;
+		!x echo -e \e[01;32m SUCCESS \e[00m
+	}
+!c
+	!x echo -e \e[01;31m FAIL \e[00m

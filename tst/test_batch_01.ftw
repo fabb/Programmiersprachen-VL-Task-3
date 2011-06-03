@@ -1,0 +1,4 @@
+#!./ftw.pl
+
+!b tst/test_[x]
+!x echo test_[[x]].w00t
