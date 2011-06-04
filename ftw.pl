@@ -386,6 +386,7 @@ sub execute {
 		when ("batch") {
 			print "== batch ==\n" if $DEBUG;
 			my $pattern = $ast->{'pattern'};
+			my %wcardsnew = %{$wcards};
 
 			my $filepath = $pattern->{'string'};
 			$filepath =~ s/\[\w+\]/\*/g;
@@ -421,16 +422,16 @@ sub execute {
 						$t =~ s/(\[|\])//g; 
 						my @x = $phash{$t};
 						if ($x[0][0]) { # does it exists?
-							if (!$wcards->{$tt}) { # empty?
-								$wcards->{$tt} = [];
+							if (!$wcardsnew{$tt}) { # empty?
+								$wcardsnew{$tt} = [];
 							}
-							push @{$wcards->{$tt}}, $x[0][0];
+							push @{$wcardsnew{$tt}}, $x[0][0];
 						}
 					}
 				}
 				print "file: ", $file, "\n" if $DEBUG;
 			}
-			return execute($ast->{'action'}, $wcards);
+			return execute($ast->{'action'}, \%wcardsnew);
 		}
 		when ("seq") {
 			print "== seq   ==\n" if $DEBUG;
@@ -501,6 +502,7 @@ my $prog = parse($token,[]);
 print "\nprog ref:\n\n" if $DEBUG;
 print Dumper($prog) if $DEBUG;
 
-exit -1 if execute($prog, ()) == -1;
+my %dummy = ();
+exit -1 if execute($prog, \%dummy) == -1;
 
 exit 0;
