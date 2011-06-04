@@ -1,4 +1,11 @@
 #!./ftw.pl
 
-!b tst/test_[x]
-!x echo test_[[x]].w00t
+{
+	!b tst/test_[x]
+	!x wc -l tst/test_[[x]]
+	;
+	!x echo ---------------
+	;
+	!b tst/res_[x]
+	!x wc -l tst/res_[[x]]
+}

@@ -1,0 +1,12 @@
+#!./ftw.pl
+
+{
+	!x touch tst/patA.tmp ;
+	!x touch tst/patB.tmp ;
+	!l
+		!b tst/pat[x].tmp
+		{
+			!x echo [[x]] ;
+		}
+	;
+}

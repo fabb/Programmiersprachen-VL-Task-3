@@ -1,0 +1,10 @@
+#!./ftw.pl
+
+!e
+	{
+		!x echo the following aborts with an error ; 
+		!x ./ftw.pl tst/res_fail_01.ftw ;
+		!x echo oops. you should not see me.
+	}
+!c
+	!x echo OK.

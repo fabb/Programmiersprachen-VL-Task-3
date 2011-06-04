@@ -10,12 +10,6 @@ use Data::Dumper;
 
 my $DEBUG = 0;
 
-my $input_fail = "{ } !x echo lol rofl
-!b !l !e !c /home/stuff/[img]_[date].jpg ;
-!x echo [[foo]].jpg asdf bla[x][y][[z]] as!df !x echo foo
-";
-#$_ = "!x !fail echo haha}";
-
 my $input = "!e !e !x echo bla !c !x echo blu !c !x echo bli ";
 my $input4 = "{ ;; !b muster[x] !x echo bla [[x]] ; {{{ !x echo bli }}} ;; !x echo bla } ";
 my $input3 = "!b muster[x] !x echo bla [[x]] ";
@@ -363,7 +357,7 @@ sub execute {
 			$filepath =~ s/\[\w+\]/\*/g;
 
 			my @files = split('\n',`ls $filepath 2> /dev/null`);
-			if ($? != 0) { # pattern doesn't exist (anymore)
+			if ($? != 0) { # pattern doesn't match (anymore)
 				return 0;
 			}
 
@@ -483,8 +477,9 @@ sub execute {
 $_ = shift;
 my @lines;
 if ($_) {
-	open(my $in, "<", $_);
+	open(my $in, "<", $_) or die "can't open $_: $!";
 	@lines = <$in>;
+	close($in);
 } else {
 	@lines = <STDIN>;
 }

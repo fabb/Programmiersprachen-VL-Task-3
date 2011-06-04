@@ -1,0 +1,11 @@
+#!./ftw.pl
+# input fail
+{ }
+!x echo a b
+!b
+	!l
+		!e
+		!c
+			/home/[img]_[date].jpg ;
+		!x echo [[foo]].jpg asdf bla[x][y][[z]] as!df
+		!x echo foo
