@@ -221,11 +221,11 @@ sub parse{
 			# print "\nactions:\n\n";
 			# print Dumper(\@actiontokens), "\n";
 			
-			my @action;
+			my @actions;
 			for my $actiontoken (@actiontokens) {
-				push @action, parse($actiontoken,$wvars);
+				push @actions, parse($actiontoken,$wvars);
 			}
-			$prog{'action'} = \@action;
+			$prog{'action'} = \@actions;
 		}
 		when ("batch") {
 			$prog{'actiontype'} = "batch";
@@ -501,8 +501,6 @@ my $prog = parse($token,[]);
 print "\nprog ref:\n\n" if $DEBUG;
 print Dumper($prog) if $DEBUG;
 
-my %wildcards = (dummy => []);
-delete $wildcards{"dummy"};
-exit -1 if execute($prog, \%wildcards) == -1;
+exit -1 if execute($prog, ()) == -1;
 
 exit 0;
