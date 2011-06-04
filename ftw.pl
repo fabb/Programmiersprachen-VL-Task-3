@@ -80,7 +80,8 @@ sub scan {
 				print "\twith ref-pattern: @patterns\n" if $DEBUG;
 			}
 			push @token, {tokentype => "ref", content => $id, patterns => \@patterns};
-		} elsif (/\G(([\w\-_\/\.]|\[\w+\])+)\s+/gc) { # only a pattern in a batch, thus after ref matching above
+		} # only a pattern in a batch, thus after ref matching above
+		elsif (/\G(([\w\-_\/\.]|\[\w+\][\w\-_\/\.])+(\[\w+\])?)\s+/gc) {
 			#TODO " ' and `
 			my $id = $1;
 			my $idmod = $id; # actually the replacing is not interesting until execution as the name of the patterns is still needed until then

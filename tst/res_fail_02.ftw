@@ -1,0 +1,4 @@
+#!./ftw.pl
+# pattern fail
+!b bla[xxx][yyy]
+!x echo [[xxx]][[yyy]]

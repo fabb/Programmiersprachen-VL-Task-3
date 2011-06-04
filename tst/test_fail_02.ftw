@@ -3,7 +3,7 @@
 !e
 	{
 		!x echo the following aborts with an error ; 
-		!x ./ftw.pl tst/res_fail_01.ftw ;
+		!x ./ftw.pl tst/res_fail_02.ftw ;
 		!x echo OOPS. you should not see me.
 	}
 !c
