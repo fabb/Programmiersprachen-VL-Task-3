@@ -332,55 +332,26 @@ sub execute {
 			print "command: ", $command, "\n" if $DEBUG;
 			print "args-dump: ", Dumper($ast->{'args'}) if $DEBUG;
 
-			# tricky part: suppose you have 'echo abc t[[xx]] o[[yy]][[zz]]'
-			# and you have xx = {a,b,c}, yy = {1,2}, zz = {i,j} you get
-			# |xx| * |yy| * |zz| = 3 * 2 * 2 = 12 calls, i.e.
-			# > echo abc ta o1i
-			# > echo abc ta o1j
-			# > echo abc ta o2i
-			# > echo abc ta o2j
-			# > echo abc tb o1i
-			# ... and so forth
-			my @ccall = ("");
+			my @localargs = ();
 			my $args = $ast->{'args'};
 			foreach my $arg (@{$args}) {
-				my @tcc = ();
 				if (@{$arg->{'wildcards'}}) { # array not empty
-
-					foreach my $ccelem (@ccall) {
-						# do a crossproduct of all matches of the wildcards
-						my @crosswc = ("");
-						foreach my $wc (@{$arg->{'wildcards'}}) {
-							my @tmpwc = ();
-							foreach my $tcwc (@crosswc) {
-								foreach my $file (@{$wcards->{$wc}}) {
-									$_ = $arg->{'argcontent'};
-									s/\[\[\w+\]\]/$file/g;
-									push @tmpwc, ($tcwc . $_);
-								}
-							}
-							@crosswc = @tmpwc;
-						}
-						foreach my $ttcwc (@crosswc) {
-							push @tcc, ($ccelem . " " . $ttcwc);
-						}
+					$_ = $arg->{'argcontent'};
+					foreach my $wc (@{$arg->{'wildcards'}}) {
+						my $twc = $wc;
+						$twc =~ s/[\[\]]//g;
+						s/\[\[$twc\]\]/$wcards->{$wc}/g;
 					}
 				} else {
-					foreach my $ccelem (@ccall) {
-						push @tcc, ($ccelem . " " . $arg->{'argcontent'});
-					}
+					$_ = $arg->{'argcontent'};
 				}
-				@ccall = @tcc;
+				push @localargs, $_;
 			}
 
-			print "ccall: ", Dumper(@ccall) if $DEBUG;
-			# execute each generated call, but abort if one isn't successful
-			foreach my $cmdcall (@ccall) {
-				system(split(/ /, $command . $cmdcall));
-				if ($? != 0) {
-					return -1;
-				}
-			}
+			unshift @localargs, $command;
+			print "localargs: ", (join " ", @localargs), "\n" if $DEBUG;
+			system(@localargs);
+			return -1 if $? != 0;
 			return 1;
 		}
 		when ("batch") {
@@ -411,6 +382,7 @@ sub execute {
 			print "filepath: ", $filepath, "\n" if $DEBUG;
 
 			# extract each match for wildcard and store it for later use
+			my %localwcards = ();
 			foreach my $file (@files) {
 				if ($file =~ m/$filepath/) {
 					my %phash = %-;
@@ -422,16 +394,48 @@ sub execute {
 						$t =~ s/(\[|\])//g; 
 						my @x = $phash{$t};
 						if ($x[0][0]) { # does it exists?
-							if (!$wcardsnew{$tt}) { # empty?
-								$wcardsnew{$tt} = [];
+							if (!$localwcards{$tt}) { # empty?
+								$localwcards{$tt} = [];
 							}
-							push @{$wcardsnew{$tt}}, $x[0][0];
+							push @{$localwcards{$tt}}, $x[0][0];
 						}
 					}
 				}
 				print "file: ", $file, "\n" if $DEBUG;
 			}
-			return execute($ast->{'action'}, \%wcardsnew);
+
+			# tricky part: suppose you have 'echo abc t[[xx]] o[[yy]][[zz]]'
+			# and you have xx = {a,b,c}, yy = {1,2}, zz = {i,j} then you get
+			# |xx| * |yy| * |zz| = 3 * 2 * 2 = 12 calls, i.e.
+			# > echo abc ta o1i
+			# > echo abc ta o1j
+			# > echo abc ta o2i
+			# > echo abc ta o2j
+			# > echo abc tb o1i
+			# ... and so forth
+			my @crossproduct = ();
+			push @crossproduct, \%wcardsnew;
+			@twildcards = @{$pattern->{'wildcards'}};
+			foreach my $t (@twildcards) {
+				my @tcp = ();
+				my @lwcards = @{$localwcards{$t}};
+				foreach my $entry (@crossproduct) {
+					foreach my $wc (@lwcards) {
+						my %newentry = %{$entry};
+						$newentry{$t} = $wc;
+						push @tcp, \%newentry;
+					}
+				}
+				@crossproduct = @tcp;
+			}
+
+			print "crossproduct: ", Dumper(@crossproduct) if $DEBUG;
+
+			foreach my $href (@crossproduct) {
+				my $ret = execute($ast->{'action'}, $href);
+				return -1 if $ret == -1;
+			}
+			return 1;
 		}
 		when ("seq") {
 			print "== seq   ==\n" if $DEBUG;

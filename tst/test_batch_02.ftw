@@ -1,0 +1,18 @@
+#!./ftw.pl
+{
+	!x touch tst/patA-1.tmp ;
+	!x touch tst/patB-2.tmp ;
+	!x touch tst/fooJ.tmp ;
+	!x touch tst/fooK.tmp ;
+	!b tst/pat[xxx]-[zzz].tmp
+		!b tst/foo[yyy].tmp
+		!e
+			!x false
+		!c
+			!x echo [[yyy]][[xxx]] [[zzz]]
+	;
+	!x rm tst/patA-1.tmp ;
+	!x rm tst/patB-2.tmp ;
+	!x rm tst/fooJ.tmp ;
+	!x rm tst/fooK.tmp ;
+}

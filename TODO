@@ -6,8 +6,6 @@ General
 
 * Write Preconditions, Postconditions and Invariants as Function Comments
 * input scanning needs additional space in the end of a non-sequence program due to s+
-* !batch is wrong. execute one match for the hole action, so don't generate the
-  matches in each action of the batch-action
 * bla[xxx][yyy] not allowed. fix that.
 * bla[xxx]asdf should also match for blaasdf
 
