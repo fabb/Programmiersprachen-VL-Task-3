@@ -378,6 +378,7 @@ sub execute {
 			}
 			print "filepath: ", $filepath, "\n" if $DEBUG;
 
+			my $retall = 0;
 			# extract each match for wildcard and store it for later use
 			foreach my $file (@files) {
 				if ($file =~ m/$filepath/) {
@@ -396,11 +397,12 @@ sub execute {
 					}
 					my $ret = execute($ast->{'action'}, \%localwcards);
 					return -1 if $ret == -1;
+					$retall += 1;
 				}
 				print "file: ", $file, "\n" if $DEBUG;
 			}
 
-			return 1;
+			return $retall;
 		}
 		when ("seq") {
 			print "== seq   ==\n" if $DEBUG;
