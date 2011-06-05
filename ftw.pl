@@ -379,10 +379,10 @@ sub execute {
 			print "filepath: ", $filepath, "\n" if $DEBUG;
 
 			# extract each match for wildcard and store it for later use
-			my %localwcards = ();
 			foreach my $file (@files) {
 				if ($file =~ m/$filepath/) {
 					my %phash = %-;
+					my %localwcards = %{$wcards};
 					@twildcards = @{$pattern->{'wildcards'}};
 					foreach my $t (@twildcards) {
 						my $tt = $t;
@@ -390,48 +390,16 @@ sub execute {
 						# capture hash
 						$t =~ s/(\[|\])//g; 
 						my @x = $phash{$t};
-						if (!$localwcards{$tt}) { # empty?
-							$localwcards{$tt} = [];
-						}
 						$_ = $x[0][0];
 						$_ = "" if !$x[0][0];
-						push @{$localwcards{$tt}}, $_;
+						$localwcards{$tt} = $_;
 					}
+					my $ret = execute($ast->{'action'}, \%localwcards);
+					return -1 if $ret == -1;
 				}
 				print "file: ", $file, "\n" if $DEBUG;
 			}
 
-			# tricky part: suppose you have 'echo abc t[[xx]] o[[yy]][[zz]]'
-			# and you have xx = {a,b,c}, yy = {1,2}, zz = {i,j} then you get
-			# |xx| * |yy| * |zz| = 3 * 2 * 2 = 12 calls, i.e.
-			# > echo abc ta o1i
-			# > echo abc ta o1j
-			# > echo abc ta o2i
-			# > echo abc ta o2j
-			# > echo abc tb o1i
-			# ... and so forth
-			my @crossproduct = ();
-			push @crossproduct, \%wcardsnew;
-			@twildcards = @{$pattern->{'wildcards'}};
-			foreach my $t (@twildcards) {
-				my @tcp = ();
-				my @lwcards = @{$localwcards{$t}};
-				foreach my $entry (@crossproduct) {
-					foreach my $wc (@lwcards) {
-						my %newentry = %{$entry};
-						$newentry{$t} = $wc;
-						push @tcp, \%newentry;
-					}
-				}
-				@crossproduct = @tcp;
-			}
-
-			print "crossproduct: ", Dumper(@crossproduct) if $DEBUG;
-
-			foreach my $href (@crossproduct) {
-				my $ret = execute($ast->{'action'}, $href);
-				return -1 if $ret == -1;
-			}
 			return 1;
 		}
 		when ("seq") {
