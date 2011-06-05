@@ -371,7 +371,7 @@ sub execute {
 			foreach my $wc (@twildcards) {
 				my $wco = $wc;
 				$wc =~ s/\[/\(\?</g;
-				$wc =~ s/\]/>\[\\w\\\.\]\+\)/g;
+				$wc =~ s/\]/>\[\\w\\\.\]\*\)/g;
 				$wco =~ s/\[/\\\[/g;
 				$wco =~ s/\]/\\\]/g;
 				$filepath =~ s/$wco/$wc/g;
@@ -390,12 +390,12 @@ sub execute {
 						# capture hash
 						$t =~ s/(\[|\])//g; 
 						my @x = $phash{$t};
-						if ($x[0][0]) { # does it exists?
-							if (!$localwcards{$tt}) { # empty?
-								$localwcards{$tt} = [];
-							}
-							push @{$localwcards{$tt}}, $x[0][0];
+						if (!$localwcards{$tt}) { # empty?
+							$localwcards{$tt} = [];
 						}
+						$_ = $x[0][0];
+						$_ = "" if !$x[0][0];
+						push @{$localwcards{$tt}}, $_;
 					}
 				}
 				print "file: ", $file, "\n" if $DEBUG;

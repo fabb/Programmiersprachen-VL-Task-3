@@ -1,0 +1,11 @@
+#!./ftw.pl
+
+{
+	!x touch blaasdf.tmp;
+	!x touch bla1234asdf.tmp;
+	!b bla[x]asdf.tmp
+		!x echo - [[x]] -
+	;
+	!x rm blaasdf.tmp;
+	!x rm bla1234asdf.tmp
+}
