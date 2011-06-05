@@ -360,9 +360,6 @@ sub execute {
 			$filepath =~ s/\[\w+\]/\*/g;
 
 			my @files = split('\n',`ls $filepath 2> /dev/null`);
-			if ($? != 0) { # pattern doesn't match (anymore)
-				return 0;
-			}
 
 			$filepath = $pattern->{'string'};
 			my @twildcards = @{$pattern->{'wildcards'}};
