@@ -1,0 +1,2 @@
+#!./ftw.pl
+{!x echo a;!x echo b;}

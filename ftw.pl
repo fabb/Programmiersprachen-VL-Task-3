@@ -33,6 +33,8 @@ sub scan {
 	my $validlex = 1;
 	my $lastpos = 0;
 
+	s/;/ ;/g; # scanner hack...
+
 	# http://perldoc.perl.org/perlop.html#Regexp-Quote-Like-Operators
 	# subsection "\G assertion"
 	while ($validlex) {
@@ -62,7 +64,7 @@ sub scan {
 		} elsif (/\G;\s*/gc) {
 			print "delim\n" if $DEBUG;
 			push @token, {tokentype => "delim"};
-		} elsif (/\G(([\[\\\;\-\w\/\.])+)\s+/gc) {
+		} elsif (/\G(([\\\-\w\/\.])+)\s+/gc) {
 			#TODO " ' and `
 			my $id = $1;
 			print "id: $id\n" if $DEBUG;

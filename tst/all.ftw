@@ -5,13 +5,13 @@
 !e
 	!b tst/test_[x]
 	{
-		!x echo -e \033[01;34mTesting tst/test_[[x]] now ... ;
-		!x echo -e --- INPUT  --- \033[00m ;
+		!x echo -e \033\x5b01\x3b34mTesting tst/test_[[x]] now ... ;
+		!x echo -e --- INPUT  --- \033\x5b00m ;
 		!x cat tst/test_[[x]] ;
-		!x echo -e \033[01;34m--- OUTPUT --- \033[00m ;
+		!x echo -e \033\x5b01\x3b34m--- OUTPUT --- \033\x5b00m ;
 		!x ./tst/exectc.sh ./tst/test_[[x]] ;
-		!x echo -e \033[01;32m SUCCESS \033[00m ;
+		!x echo -e \033\x5b01\x3b32m SUCCESS \033\x5b00m ;
 		!x echo
 	}
 !c
-	!x echo -e \033[01;31m FAIL \033[00m
+	!x echo -e \033\x5b01\x3b31m FAIL \033\x5b00m
