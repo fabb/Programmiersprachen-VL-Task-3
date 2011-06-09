@@ -10,21 +10,8 @@ use Data::Dumper;
 
 my $DEBUG = 0;
 
-my $input = "!e !e !x echo bla !c !x echo blu !c !x echo bli ";
-my $input4 = "{ ;; !b muster[x] !x echo bla [[x]] ; {{{ !x echo bli }}} ;; !x echo bla } ";
-my $input3 = "!b muster[x] !x echo bla [[x]] ";
-my $input_fail2 = "!b muster[x] !x echo [[x]]";
-my $input2 = "{ !x command_xy lol[x] rofl[[x]] ; }";
-# testcases for execute
-my $input5 = "!e !e !x false !c !x false !c !x echo bli ";
-my $input6 = "!b tst/pat[xxx]-[zzz] !b tst/foo[yyy] !e !e !x false !c !x echo asdf muh [[yyy]][[xxx]] b1 b2 b3 [[zzz]] b4 !c !x echo bli ";
-my $input7 = "!b tst/[xxx]-[yyy] !x echo wtf bla[[xxx]] ";
-my $input8 = "{!x echo abc ; !x echo 123 }";
-my $input9 = "!l !b tst/rofl[x] !x echo ups [[x]] ";
-
 
 # lexes the input and produces an array with lexemes stored in a hash
-#FIXME input needs space at the end
 sub scan {
 	my $_ = shift; # take input
 	my @token;
@@ -471,7 +458,6 @@ my $prog = parse($token,[]);
 print "\nprog ref:\n\n" if $DEBUG;
 print Dumper($prog) if $DEBUG;
 
-my %dummy = ();
-exit -1 if execute($prog, \%dummy) == -1;
+exit -1 if execute($prog,{}) == -1;
 
 exit 0;
